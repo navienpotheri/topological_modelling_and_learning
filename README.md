@@ -1,139 +1,127 @@
-# Topological Early-Warning Indicator: Detecting Representation Fracturing Before Validation Loss Degradation
+# Topological Bridge: Invariant Reinforcement Learning Under Verification Blackouts
 
-[![PyTorch](https://img.shields.io/badge/Framework-PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![TDA](https://img.shields.io/badge/TDA-Ripser-blue)](https://github.com/scikit-tda/ripser)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![Ripser TDA](https://img.shields.io/badge/TDA-Ripser%20%26%20Persim-orange.svg)](https://ripser.scikit-tda.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-This project provides an empirical testbed and implementation pipeline demonstrating that **Topological Data Analysis (TDA)** metrics—specifically **Persistent Entropy $E(D)$** and Betti numbers ($b_k$)—serve as leading indicators for neural network overfitting and representation degradation.
+An autonomous reinforcement learning framework where **Tangent-Bundle Persistent Homology** ($H_1$) serves as an intrinsic, coordinate-invariant pseudo-reward oracle. 
 
----
-
-## 📌 Theoretical Hypothesis
-
-* **Core Hypothesis:** As a deep neural network begins to overfit, the geometric manifold structure of intermediate feature activations "fractures" (clusters fragment into noisy, isolated topologies and topological entropy shifts sharply) **before** the scalar cross-entropy validation loss begins its upward degradation inflection.
-* **Independent Variable:** Training epochs under an intentionally overfitted setup (subsampled training distribution).
-* **Dependent Variables:**
-  1. **Validation Loss:** $\mathcal{L}_{\text{val}}(t)$
-  2. **Persistent Entropy:** $E(D_t)$ of penultimate layer representation activations.
+This framework establishes a continuous bridge between point-wise scalar feedback and global manifold topology, enabling policy guidance and structural containment across unobserved blackout environments.
 
 ---
 
-## 🔬 Experimental Setup
+## 1. Problem Statement & Motivation
 
-To produce rapid, high-signal verification without heavy compute requirements:
+In standard Reinforcement Learning (RL), agents rely on scalar reward signals $R(s_t, a_t)$ calibrated against explicit coordinate frames. In sparse or GPS-denied domains, supervisory feedback can be severed (**Verification Blackout**).
 
-* **Dataset:** CIFAR-10 (subsampled to accelerate overfitting).
-* **Architecture:** Convolutional Neural Network (CNN) / ResNet backbone.
-* **Probing Layer:** Penultimate layer (pre-classification latent embedding space $Z \in \mathbb{R}^d$).
-* **Core Libraries:** `torch`, `torchvision`, `ripser`, `numpy`, `matplotlib`.
+Under scalar reward starvation, policies encounter three failure modes:
+* **Gradient Starvation:** $\nabla_\theta J(\pi_\theta) \to 0$, causing drift into unrecoverable state space.
+* **Coordinate Brittleness:** Scalar functions penalize harmless phase shifts or high-frequency sensor noise.
+* **Dead-Reckoning Drift:** Cumulative integration errors during open-loop execution.
 
----
-
-## 📐 Mathematical Formulation & Pipeline
-
-```
-  Input Images ──► [ CNN Backbone ] ──► Penultimate Latents Z (N x d)
-                                                  │
-                                                  ▼
-                                       [ Vietoris-Rips Complex ]
-                                                  │
-                                                  ▼
-                                     Persistence Diagram D (H0, H1)
-                                                  │
-                                                  ▼
-                                       Persistent Entropy E(D)
-```
-
-### 1. Subsample Latent Activations
-Because Vietoris–Rips persistent homology scales cubically with point count ($\mathcal{O}(N^3)$), we sample a fixed evaluation batch of $N = 300\text{–}500$ points across intervals:
-1. Pass evaluation inputs through the model.
-2. Extract penultimate latent activations $Z = [z_1, z_2, \dots, z_N] \in \mathbb{R}^{N \times d}$.
-3. Standardize/normalize feature activations across dimensions.
-
-### 2. Vietoris–Rips Persistent Homology
-We construct persistence diagrams $D = \{(b_i, d_i)\}_{i=1}^m$ across dimensions $H_0$ (connected components) and $H_1$ (1D topological loops):
-* **Birth time ($b_i$):** Distance threshold where a topological feature appears.
-* **Death time ($d_i$):** Distance threshold where a topological feature closes or merges.
-* **Persistence / Lifespan:** $L_i = d_i - b_i$.
-
-### 3. Persistent Entropy Computation
-From the barcode lifespans, we compute normalized persistence probabilities:
-
-$$p_i = \frac{L_i}{\sum_{j=1}^m L_j}$$
-
-The Persistent Entropy $E(D)$ is calculated as:
-
-$$E(D) = -\sum_{i=1}^m p_i \log_2(p_i)$$
-
-*(Alternatively, track long-lived $H_0$ component counts at fixed filtration scales to quantify representation fragmentation).*
+This framework introduces a **Topological Handover Protocol** that derives surrogate guidance directly from the **algebraic topology of trajectory flow in phase space**.
 
 ---
 
-## 📊 Telemetry & Validation Tracking
+## 2. Theoretical Architecture
 
-At every epoch, the training loop tracks:
-* **Optimization Metrics:** `train_loss`, `val_loss`, `val_acc`
-* **Topological Metrics:** `persistent_entropy_H0`, `persistent_entropy_H1`
+Trajectory Window τ = { s_(t-k), ..., s_t }
+                                  │
+           ┌──────────────────────┴──────────────────────┐
+           ▼                                             ▼
+ Base Manifold Invariant                      Tangent Fiber Bundle
+(Vietoris-Rips Filtration)                    (Differential Flow)
+           │                                             │
+  H₁ Persistence Diagram D_τ                  Velocity / Curvature
+           │                                             │
+Wasserstein Matching W₁(D_τ, D*)               Flow Alignment ⟨v, v*⟩
+           │                                             │
+           ▼                                             ▼
+   Macro Structural Score                      Micro Kinematic Penalty
+        Φ_global(D_τ)                               Ψ_local(v, κ)
+           └──────────────────────┬──────────────────────┘
+                                  ▼
+                    Hodge-Decomposed Bridge Reward
+                    R_bridge = α·Φ_global + β·Ψ_local
 
-### Empirical Lead-Time Signature
+                    ### A. Tangent-Bundle Lifting ($T\mathcal{M}$)
+To account for traversal direction, speed, and acceleration, trajectory states are lifted to the **5D Tangent Bundle**:
 
-```
-Loss / Entropy
-  │
-  │                         H0 Persistent Entropy E(D) [Lead Indicator]
-  │                               ┌─────────────────────────────
-  │                              ╱
-  │                             ╱
-  │                            ╱
-  │    Validation Loss        │              ▲ Upward Inflection
-  │    ───────────────────────┼──────────────┼ (Lagging Indicator)
-  │                           │              │
-  0───────────────────────── t_lead ──────── t_loss ─────────────► Epochs
-                              ▲
-                 Topological Anomaly Spike:
-                 Representation Manifold Fractures
-```
+$$
+\mathbf{z}(t) = \Big( x(t), \; y(t), \; \gamma_v \dot{x}(t), \; \gamma_v \dot{y}(t), \; \gamma_\kappa \kappa(t) \Big) \in \mathbb{R}^5
+$$
+
+where instantaneous planar curvature $\kappa(t)$ is defined as:
+
+$$
+\kappa(t) = \frac{|\dot{x}\ddot{y} - \dot{y}\ddot{x}|}{\left(\dot{x}^2 + \dot{y}^2\right)^{3/2}}
+$$
 
 ---
 
-## 🚀 Quickstart
+### B. Metric-Preserving Persistent Homology
+Vietoris-Rips complexes $\mathcal{VR}_\epsilon(\mathbf{z}_\tau)$ are computed across sliding windows $\tau$. The dominant 1-cycle ($H_1$) characterizes loop stability:
+* **Birth ($b$):** Spatial scale where points connect into an enclosed cycle.
+* **Death ($d$):** Scale where the cycle is filled by simplices.
+* **Lifespan ($L = d - b$):** Proportional to orbit diameter and boundary integrity.
 
-### 1. Installation
+---
+
+### C. Hodge-Style Surrogate Bridge
+The unified surrogate reward decomposes into global topology and local kinematic regularizers:
+
+$$
+\mathcal{R}_{\text{bridge}}(t) = \text{AffineFit}\left( \frac{\max_i(d_i - b_i)}{1.0 + \lambda \cdot \mathcal{W}_1(D_\tau, D^*)} \right) + \Psi_{\text{local}}(\dot{s}, \ddot{s})
+$$
+
+---
+
+## 3. Experimental Protocol: 3-Phase Handover
+
+The system is evaluated over a 500-step dynamic trajectory with external perturbations:
+
+| Phase | Steps ($t$) | Supervision Mode | Objective |
+| :--- | :--- | :--- | :--- |
+| **Phase 1: Co-Calibration** | $1 \le t \le 100$ | Full Ground Truth ($R_{\text{env}}$) | Calibrate affine mapping from $H_1$ persistence to scalar reward scale. |
+| **Phase 2: Blackout Control** | $101 \le t \le 350$ | **Autonomous Invariant ($r_{\text{topo}}$)** | External drift $F_{\text{drift}} = A \sin(\omega t)$ applied; policy guided by topological pullback. |
+| **Phase 3: Audit** | $351 \le t \le 500$ | Full Ground Truth ($R_{\text{env}}$) | Restores ground truth to measure trajectory fidelity and drift bounds. |
+
+---
+
+## 4. Evaluation Metrics
+
+* **Phase 2 Mean Absolute Alignment Gap:**
+  $$
+  \text{MAE}_{\text{P2}} = \frac{1}{250} \sum_{t=101}^{350} \big| r_{\text{topo}}(t) - R_{\text{env}}(t) \big|
+  $$
+
+* **Boundary Handover Discontinuity:**
+  $$
+  \Delta R_{\text{in}} = |r(100) - r(99)|, \quad \Delta R_{\text{out}} = |r(350) - r(349)|
+  $$
+
+---
+
+## 5. Repository Structure
+
+├── run_topological_bridge_calibration.py  # Core simulation and TDA engine
+├── topological_handover_calibration.png   # Output telemetry plots
+├── requirements.txt                      # Project dependencies
+└── README.md                             # Architecture documentation
+
+## 6. Installation & Quickstart
+
 ```bash
-git clone [https://github.com/](https://github.com/)<your-username>/<your-repo-name>.git
-cd <your-repo-name>
-pip install -r requirements.txt
-```
+# Clone the repository
+git clone [https://github.com/YourUsername/topological-invariant-rl.git](https://github.com/YourUsername/topological-invariant-rl.git)
+cd topological-invariant-rl
 
-### 2. Dependencies (`requirements.txt`)
-```text
-torch
-torchvision
-numpy
-ripser
-matplotlib
-```
+# Install dependencies
+pip install numpy matplotlib ripser persim scipy
 
-### 3. Run Experiment
-```bash
-python run_topological_overfitting_exp.py
-```
+# Run calibration benchmark
+python run_topological_bridge_calibration.py
 
-The script automatically caches the dataset, computes persistent homology per evaluation step, logs metrics, and exports the dual-axis verification plot (`topological_lead_indicator_compact.png`).
+7. Results & Telemetry
 
----
-
-## 📁 Repository Structure
-
-```
-├── run_topological_overfitting_exp.py  # End-to-end training and TDA pipeline
-├── topological_lead_indicator_compact.png      # Output dual-axis lead-time figure
-├── requirements.txt                    # Python package dependencies
-├── README.md                           # Methodology and pipeline documentation
-└── .gitignore                          # Standard ignore rules
-```
-
----
-
-## 📜 License
-This project is licensed under the MIT License.
+The calibration run outputs a dual-panel verification figure:Active Reward Stream (Top): Demonstrates seamless transitions at $t=100$ and $t=350$ with zero policy shock.Disparity Residuals (Bottom): Tracks $|r_{\text{topo}} - R_{\text{env}}|$, confirming that the topological surrogate dynamically responds to environmental disturbances.8. LicenseDistributed under the MIT License. See LICENSE for details.
