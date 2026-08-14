@@ -119,7 +119,7 @@ matplotlib
 python run_topological_overfitting_exp.py
 ```
 
-The script automatically caches the dataset, computes persistent homology per evaluation step, logs metrics, and exports the dual-axis verification plot (`topological_lead_indicator.png`).
+The script automatically caches the dataset, computes persistent homology per evaluation step, logs metrics, and exports the dual-axis verification plot (`topological_lead_indicator_compact.png`).
 
 ---
 
@@ -127,7 +127,7 @@ The script automatically caches the dataset, computes persistent homology per ev
 
 ```
 ├── run_topological_overfitting_exp.py  # End-to-end training and TDA pipeline
-├── topological_lead_indicator.png      # Output dual-axis lead-time figure
+├── topological_lead_indicator_compact.png      # Output dual-axis lead-time figure
 ├── requirements.txt                    # Python package dependencies
 ├── README.md                           # Methodology and pipeline documentation
 └── .gitignore                          # Standard ignore rules
