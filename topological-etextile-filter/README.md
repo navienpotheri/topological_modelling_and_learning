@@ -19,7 +19,7 @@ During long-horizon manipulation, autoregressive models predict local next-step 
 
 ## Topological Oracle Mechanism
 
-1. **State-Space Trajectory Extraction:** Tracks the spatial/phase coordinates of the end-effector rollout $\mathcal{T} = \{x_t\}_{t=1}^T$.
+1. **State-Space Trajectory Extraction:** Tracks the spatial coordinates of the end-effector rollout $\mathcal{T} = \{x_t\}_{t=1}^T$.
 2. **Vietoris–Rips Complex Filtration:** Constructs persistent homology diagrams over the trajectory point cloud.
 3. **$H_1$ Invariant Verification:** Extracts the 1D loop generator lifespan:
    $$\text{Max Lifetime } L = \max_{i} (d_i - b_i)$$
@@ -37,17 +37,3 @@ Three rollout candidates were evaluated against an obstacle avoidance / sub-goal
 | **Valid Trajectory (Closed Loop)** | **3.1006** | **PASSED** (Advance Context) |
 | **Hallucinated Shortcut (Collapsed)** | **0.0230** | **REJECTED** (Hallucination Detected) |
 | **Premature Termination (Incomplete)** | **0.0281** | **REJECTED** (Hallucination Detected) |
-
-=================================================================
-EXPERIMENT 1: INVARIANT SUB-GOAL VERIFICATION VIA H1 HOMOLOGY
-Scenario: Valid Trajectory (Closed Sub-goal Loop)
-Max H1 Persistence Lifetime: 3.1006
-Oracle Decision:             PASSED (Advance Context)
-
-Scenario: Hallucinated Shortcut (Collapsed)
-Max H1 Persistence Lifetime: 0.0230
-Oracle Decision:             REJECTED (Hallucination Detected)
-
-Scenario: Premature Termination (Incomplete)
-Max H1 Persistence Lifetime: 0.0281
-Oracle Decision:             REJECTED (Hallucination Detected)
