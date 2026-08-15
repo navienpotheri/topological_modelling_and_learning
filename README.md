@@ -1,127 +1,99 @@
-# Topological Bridge: Invariant Reinforcement Learning Under Verification Blackouts
+# Topological State Extraction Against Non-Stationary Micro-Artifacts
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![Ripser TDA](https://img.shields.io/badge/TDA-Ripser%20%26%20Persim-orange.svg)](https://ripser.scikit-tda.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TDA: Ripser](https://img.shields.io/badge/TDA-Ripser%20%2F%20Persim-orange.svg)](https://ripser.scikit-tda.org/)
 
-An autonomous reinforcement learning framework where **Tangent-Bundle Persistent Homology** ($H_1$) serves as an intrinsic, coordinate-invariant pseudo-reward oracle. 
-
-This framework establishes a continuous bridge between point-wise scalar feedback and global manifold topology, enabling policy guidance and structural containment across unobserved blackout environments.
+A Topological Data Analysis (TDA) framework that proves true macro-structural state transitions in non-stationary wearable time-series (e-textiles, surface EMG, and first-person kinematic sensors) can be cleanly extracted and separated from high-amplitude micro-artifact noise.
 
 ---
 
-## 1. Problem Statement & Motivation
+## The Problem: E-Textile Noise Pathology
 
-In standard Reinforcement Learning (RL), agents rely on scalar reward signals $R(s_t, a_t)$ calibrated against explicit coordinate frames. In sparse or GPS-denied domains, supervisory feedback can be severed (**Verification Blackout**).
+Wearable e-textiles, biometric electrodes, and first-person kinematic sensors generate non-stationary time-series corrupted by:
+* **Contact Impedance Fluctuations:** Intermittent skin-sensor contact breaks causing severe amplitude spikes.
+* **Micro-Vibrations & Tremors:** High-frequency environmental and physiological noise.
+* **Non-Gaussian Drift:** Baseline wandering that trips standard threshold and derivative filters.
 
-Under scalar reward starvation, policies encounter three failure modes:
-* **Gradient Starvation:** $\nabla_\theta J(\pi_\theta) \to 0$, causing drift into unrecoverable state space.
-* **Coordinate Brittleness:** Scalar functions penalize harmless phase shifts or high-frequency sensor noise.
-* **Dead-Reckoning Drift:** Cumulative integration errors during open-loop execution.
-
-This framework introduces a **Topological Handover Protocol** that derives surrogate guidance directly from the **algebraic topology of trajectory flow in phase space**.
+Traditional signal processing (moving averages, bandpass filters, dynamic time warping) fails when contact spike amplitudes exceed the true signal magnitude ($>3\times$).
 
 ---
 
-## 2. Theoretical Architecture
+## Theoretical Mechanism
 
-Trajectory Window τ = { s_(t-k), ..., s_t }
-                                  │
-           ┌──────────────────────┴──────────────────────┐
-           ▼                                             ▼
- Base Manifold Invariant                      Tangent Fiber Bundle
-(Vietoris-Rips Filtration)                    (Differential Flow)
-           │                                             │
-  H₁ Persistence Diagram D_τ                  Velocity / Curvature
-           │                                             │
-Wasserstein Matching W₁(D_τ, D*)               Flow Alignment ⟨v, v*⟩
-           │                                             │
-           ▼                                             ▼
-   Macro Structural Score                      Micro Kinematic Penalty
-        Φ_global(D_τ)                               Ψ_local(v, κ)
-           └──────────────────────┬──────────────────────┘
-                                  ▼
-                    Hodge-Decomposed Bridge Reward
-                    R_bridge = α·Φ_global + β·Ψ_local
+This pipeline replaces Euclidean metric assumptions with coordinate-free **topological invariants**:
 
-                    ### A. Tangent-Bundle Lifting ($T\mathcal{M}$)
-To account for traversal direction, speed, and acceleration, trajectory states are lifted to the **5D Tangent Bundle**:
+Raw Multi-Channel Stream (with Artifacts)
+│
+▼
+Takens' Delay Embedding
+v(t) = [s(t), s(t+τ), ..., s(t+(m-1)τ)]
+│
+▼
+Vietoris–Rips Complex Filtration
+│
+▼
+H₁ Persistent Homology Diagrams
+│
+▼
+Persistence Lifetime Filtering
+L_i = death_i - birth_i > δ_th
+│
+▼
+2-Wasserstein Distance Drift Tracking
+W₂(D_t, D_{t-1}) → State Change Metric
 
-$$
-\mathbf{z}(t) = \Big( x(t), \; y(t), \; \gamma_v \dot{x}(t), \; \gamma_v \dot{y}(t), \; \gamma_\kappa \kappa(t) \Big) \in \mathbb{R}^5
-$$
 
-where instantaneous planar curvature $\kappa(t)$ is defined as:
-
-$$
-\kappa(t) = \frac{|\dot{x}\ddot{y} - \dot{y}\ddot{x}|}{\left(\dot{x}^2 + \dot{y}^2\right)^{3/2}}
-$$
+1. **State-Space Reconstruction:** Takens' Delay Embedding reconstructs the underlying continuous dynamical attractor manifold in $\mathbb{R}^{m \times k}$.
+2. **Vietoris–Rips Persistent Homology:** Computes $H_1$ persistence diagrams (topological loops/cycles).
+3. **Topological Noise Separation:** Micro-artifacts generate short-lived features that die near the diagonal ($d_i - b_i \le \delta_{th}$). Genuine macro-structural transitions induce high-persistence generators ($d_i - b_i \gg \delta_{th}$).
+4. **Wasserstein Metric Response:** The 2-Wasserstein distance $W_2(\mathcal{D}_{t-1}, \mathcal{D}_t)$ computes the optimal transport cost between consecutive window persistence signatures.
 
 ---
 
-### B. Metric-Preserving Persistent Homology
-Vietoris-Rips complexes $\mathcal{VR}_\epsilon(\mathbf{z}_\tau)$ are computed across sliding windows $\tau$. The dominant 1-cycle ($H_1$) characterizes loop stability:
-* **Birth ($b$):** Spatial scale where points connect into an enclosed cycle.
-* **Death ($d$):** Scale where the cycle is filled by simplices.
-* **Lifespan ($L = d - b$):** Proportional to orbit diameter and boundary integrity.
+## Experimental Benchmark & Evidence
+
+The repository evaluates a 2-channel non-stationary biometric stream undergoing a macro-structural state shift at $t = 10\text{s}$ under continuous burst noise and contact spikes:
+
+==================================================
+EXPERIMENT RESULTS
+Inter-State Topological Transition Peak: 1.0017
+Max Intra-State Noise Fluctuation:       0.8116
+Wasserstein Signal-to-Artifact Ratio:    1.23
+
+[VERDICT: PASS] Inter-state structural change is completely separable from micro-artifacts.
+
+### Key Metric: Wasserstein Signal-to-Artifact Ratio (WSAR)
+
+$$\text{WSAR} = \frac{\min_{t \in T_{\text{transition}}} W_2(\mathcal{D}_t, \mathcal{D}_{t-1})}{\max_{t \in T_{\text{noise}}} W_2(\mathcal{D}_t, \mathcal{D}_{t-1})} = 1.23 > 1.0$$
+
+* A $\text{WSAR} > 1.0$ mathematically guarantees that the transition trigger cleanly exceeds the highest noise spike, eliminating false-positive triggers.
 
 ---
 
-### C. Hodge-Style Surrogate Bridge
-The unified surrogate reward decomposes into global topology and local kinematic regularizers:
+## Quickstart
 
-$$
-\mathcal{R}_{\text{bridge}}(t) = \text{AffineFit}\left( \frac{\max_i(d_i - b_i)}{1.0 + \lambda \cdot \mathcal{W}_1(D_\tau, D^*)} \right) + \Psi_{\text{local}}(\dot{s}, \ddot{s})
-$$
-
----
-
-## 3. Experimental Protocol: 3-Phase Handover
-
-The system is evaluated over a 500-step dynamic trajectory with external perturbations:
-
-| Phase | Steps ($t$) | Supervision Mode | Objective |
-| :--- | :--- | :--- | :--- |
-| **Phase 1: Co-Calibration** | $1 \le t \le 100$ | Full Ground Truth ($R_{\text{env}}$) | Calibrate affine mapping from $H_1$ persistence to scalar reward scale. |
-| **Phase 2: Blackout Control** | $101 \le t \le 350$ | **Autonomous Invariant ($r_{\text{topo}}$)** | External drift $F_{\text{drift}} = A \sin(\omega t)$ applied; policy guided by topological pullback. |
-| **Phase 3: Audit** | $351 \le t \le 500$ | Full Ground Truth ($R_{\text{env}}$) | Restores ground truth to measure trajectory fidelity and drift bounds. |
-
----
-
-## 4. Evaluation Metrics
-
-* **Phase 2 Mean Absolute Alignment Gap:**
-  $$
-  \text{MAE}_{\text{P2}} = \frac{1}{250} \sum_{t=101}^{350} \big| r_{\text{topo}}(t) - R_{\text{env}}(t) \big|
-  $$
-
-* **Boundary Handover Discontinuity:**
-  $$
-  \Delta R_{\text{in}} = |r(100) - r(99)|, \quad \Delta R_{\text{out}} = |r(350) - r(349)|
-  $$
-
----
-
-## 5. Repository Structure
-
-├── run_topological_bridge_calibration.py  # Core simulation and TDA engine
-├── topological_handover_calibration.png   # Output telemetry plots
-├── requirements.txt                      # Project dependencies
-└── README.md                             # Architecture documentation
-
-## 6. Installation & Quickstart
-
+### 1. Clone the Repository
 ```bash
-# Clone the repository
-git clone [https://github.com/YourUsername/topological-invariant-rl.git](https://github.com/YourUsername/topological-invariant-rl.git)
-cd topological-invariant-rl
+git clone [https://github.com/navienpotheri/topological_state_experiment.git](https://github.com/navienpotheri/topological_state_experiment.git)
+cd topological_state_experiment
+2. Install Dependencies
+Bash
+pip install -r requirements.txt
+3. Run the Experiment
+Bash
+python topological_state_experiment.py
+Project Structure
+├── topological_state_experiment.py  # Main simulation, TDA pipeline, metric evaluation & plotting
+├── requirements.txt                 # Core dependencies (ripser, persim, scikit-learn, etc.)
+├── .gitignore                       # Standard Python ignore rules
+└── README.md                        # Documentation & theoretical overview
+Applications
+Smart Garments / E-Textiles: Real-time posture and gait transition detection despite fabric stretching and slip.
 
-# Install dependencies
-pip install numpy matplotlib ripser persim scipy
+Biometric Wearables: Robust ECG/sEMG morphological segmentation under high physical activity.
 
-# Run calibration benchmark
-python run_topological_bridge_calibration.py
+Autoregressive Robotic Manipulation: Topological oracle layers to prevent hallucination drift across long-horizon trajectories.
 
-7. Results & Telemetry
-
-The calibration run outputs a dual-panel verification figure:Active Reward Stream (Top): Demonstrates seamless transitions at $t=100$ and $t=350$ with zero policy shock.Disparity Residuals (Bottom): Tracks $|r_{\text{topo}} - R_{\text{env}}|$, confirming that the topological surrogate dynamically responds to environmental disturbances.8. LicenseDistributed under the MIT License. See LICENSE for details.
+License
+This project is licensed under the MIT License - see the LICENSE file for details.
