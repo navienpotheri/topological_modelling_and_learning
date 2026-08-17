@@ -1,99 +1,92 @@
-# Topological State Extraction Against Non-Stationary Micro-Artifacts
+## 📌 Overview
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TDA: Ripser](https://img.shields.io/badge/TDA-Ripser%20%2F%20Persim-orange.svg)](https://ripser.scikit-tda.org/)
+Standard Transformer backbones suffer from quadratic $O(N^2)$ context scaling and significant KV-cache memory footprints during long-horizon sequence modeling. While Selective State Space Models (Mamba/SSMs) achieve $O(1)$ recurrent memory efficiency, their latent states and parametric weights remain vulnerable to continuous drift and catastrophic forgetting when exposed to dynamic data distributions.
 
-A Topological Data Analysis (TDA) framework that proves true macro-structural state transitions in non-stationary wearable time-series (e-textiles, surface EMG, and first-person kinematic sensors) can be cleanly extracted and separated from high-amplitude micro-artifact noise.
-
----
-
-## The Problem: E-Textile Noise Pathology
-
-Wearable e-textiles, biometric electrodes, and first-person kinematic sensors generate non-stationary time-series corrupted by:
-* **Contact Impedance Fluctuations:** Intermittent skin-sensor contact breaks causing severe amplitude spikes.
-* **Micro-Vibrations & Tremors:** High-frequency environmental and physiological noise.
-* **Non-Gaussian Drift:** Baseline wandering that trips standard threshold and derivative filters.
-
-Traditional signal processing (moving averages, bandpass filters, dynamic time warping) fails when contact spike amplitudes exceed the true signal magnitude ($>3\times$).
+**TCLA** integrates:
+1. **Frozen/Pretrained LLM Backbones** (e.g., Llama-3.2, Qwen-2.5) for rich semantic feature binding.
+2. **Selective State Space Filtering** for linear-time scan and constant inference memory.
+3. **Topological Invariant Regularization** (Simplicial Complexes & Persistent Homology) to preserve structural manifold geometry across continual streaming tasks.
 
 ---
 
-## Theoretical Mechanism
+## 🏛️ Architecture & Theoretical Framework
 
-This pipeline replaces Euclidean metric assumptions with coordinate-free **topological invariants**:
+### 1. Geometric & Topological State Representation
+State spaces are modeled across three progressive structural regimes:
+* **1D Causal Sequences:** Standard token-level sequential dependence.
+* **1-Skeleton Graphs ($G = (V, E)$):** Captures pairwise associative transitions and non-local graph neighborhoods.
+* **2-Simplicial Complexes ($K = (V, E, F)$):** Encodes 3-way interactions, filling triangular 2-simplices to track topological invariants ($\beta_0, \beta_1$) and prevent representation collapse under continuous domain shifts.
 
-Raw Multi-Channel Stream (with Artifacts)
-│
-▼
-Takens' Delay Embedding
-v(t) = [s(t), s(t+τ), ..., s(t+(m-1)τ)]
-│
-▼
-Vietoris–Rips Complex Filtration
-│
-▼
-H₁ Persistent Homology Diagrams
-│
-▼
-Persistence Lifetime Filtering
-L_i = death_i - birth_i > δ_th
-│
-▼
-2-Wasserstein Distance Drift Tracking
-W₂(D_t, D_{t-1}) → State Change Metric
-
-
-1. **State-Space Reconstruction:** Takens' Delay Embedding reconstructs the underlying continuous dynamical attractor manifold in $\mathbb{R}^{m \times k}$.
-2. **Vietoris–Rips Persistent Homology:** Computes $H_1$ persistence diagrams (topological loops/cycles).
-3. **Topological Noise Separation:** Micro-artifacts generate short-lived features that die near the diagonal ($d_i - b_i \le \delta_{th}$). Genuine macro-structural transitions induce high-persistence generators ($d_i - b_i \gg \delta_{th}$).
-4. **Wasserstein Metric Response:** The 2-Wasserstein distance $W_2(\mathcal{D}_{t-1}, \mathcal{D}_t)$ computes the optimal transport cost between consecutive window persistence signatures.
+### 2. Continual Learning & Retention Metrics
+Continual stability is tracked using Reformulated Backward Transfer ($BWT$):
+$$BWT = \frac{1}{T-1} \sum_{i=1}^{T-1} (R_{T, i} - R_{i, i})$$
+Where $R_{T, i}$ evaluates retrieval accuracy and latent manifold coordinate preservation ($\mathcal{M}_0$) of task $i$ after streaming up to task $T$.
 
 ---
 
-## Experimental Benchmark & Evidence
+## 📊 Benchmark Suite & Recent Results
 
-The repository evaluates a 2-channel non-stationary biometric stream undergoing a macro-structural state shift at $t = 10\text{s}$ under continuous burst noise and contact spikes:
+### Experiment 1.0: Latency & Memory Scaling vs. Llama-3 Attention
+Evaluated token-by-token generation across horizons up to $L = 8{,}192$:
+* **KV Cache Footprint:** Llama-3 attention scales linearly to **128.00 MB**; TCLA maintains a constant **0.50 MB** state footprint ($256\times$ reduction at $L=8{,}192$).
+* **Step Latency:** TCLA maintains invariant latency ($\sim 1.30\text{ ms/step}$), outperforming quadratic attention decoding beyond $L \approx 5{,}500$.
 
-==================================================
-EXPERIMENT RESULTS
-Inter-State Topological Transition Peak: 1.0017
-Max Intra-State Noise Fluctuation:       0.8116
-Wasserstein Signal-to-Artifact Ratio:    1.23
-
-[VERDICT: PASS] Inter-state structural change is completely separable from micro-artifacts.
-
-### Key Metric: Wasserstein Signal-to-Artifact Ratio (WSAR)
-
-$$\text{WSAR} = \frac{\min_{t \in T_{\text{transition}}} W_2(\mathcal{D}_t, \mathcal{D}_{t-1})}{\max_{t \in T_{\text{noise}}} W_2(\mathcal{D}_t, \mathcal{D}_{t-1})} = 1.23 > 1.0$$
-
-* A $\text{WSAR} > 1.0$ mathematically guarantees that the transition trigger cleanly exceeds the highest noise spike, eliminating false-positive triggers.
+| Context Length ($L$) | Llama-3 KV Cache | TCLA State Cache | Llama-3 Step Latency | TCLA Step Latency |
+| :--- | :--- | :--- | :--- | :--- |
+| **512** | 8.00 MB | **0.50 MB** | 0.82 ms | **1.31 ms** |
+| **2,048** | 32.00 MB | **0.50 MB** | 1.05 ms | **1.29 ms** |
+| **4,096** | 64.00 MB | **0.50 MB** | 1.22 ms | **1.30 ms** |
+| **8,192** | 128.00 MB | **0.50 MB** | 1.78 ms | **1.32 ms** |
 
 ---
 
-## Quickstart
+### Experiment 1.1 / 1.2: Multi-Query Associative Recall (MQAR)
+* **Configuration:** $L=256$, Vocab Size = 512, 8 scattered Key-Value pairs, 2,000 steps.
+* **Findings:** Evaluated un-pretrained Attention, Selective SSM, and Hybrid modules from scratch. Identified an optimization plateau ($\text{Loss} \approx 5.27$, marginal distribution baseline), establishing that tabula rasa associative routing requires explicit positional embeddings (RoPE) and dense pretrained prior weights (e.g., Llama-3.2-1B backbone) for long-horizon multi-key binding.
 
-### 1. Clone the Repository
+---
+
+## 🚀 Repository Structure
+
+├── benchmarks/
+│   ├── experiment_1_1_mqar_benchmark.py   # Synthetic MQAR multi-key recall evaluation
+│   ├── experiment_1_2_scaling_latency.py  # Latency vs. Context Length scaling suite
+│   └── continual_bwt_eval.py              # Backward Transfer (BWT) streaming benchmark
+├── models/
+│   ├── ssm_block.py                       # Selective State Space scan layers
+│   ├── simplicial_adapter.py              # 2-Simplicial complex topological regularization
+│   └── tcla_hybrid.py                     # Backbone + Topo Adapter + SSM pipeline
+├── scripts/
+│   └── run_overnight_benchmarks.sh        # Automated overnight execution & logging
+├── assets/
+│   └── experiment_1_1_mqar_results.png    # Convergence curves
+└── README.md
+
+
+---
+
+## 🛠️ Getting Started
+
+### Installation
 ```bash
-git clone [https://github.com/navienpotheri/topological_state_experiment.git](https://github.com/navienpotheri/topological_state_experiment.git)
-cd topological_state_experiment
-2. Install Dependencies
-Bash
+git clone [https://github.com/](https://github.com/)<your-username>/topological-etextile-filter.git
+cd topological-etextile-filter
 pip install -r requirements.txt
-3. Run the Experiment
+Running the MQAR Benchmark
 Bash
-python topological_state_experiment.py
-Project Structure
-├── topological_state_experiment.py  # Main simulation, TDA pipeline, metric evaluation & plotting
-├── requirements.txt                 # Core dependencies (ripser, persim, scikit-learn, etc.)
-├── .gitignore                       # Standard Python ignore rules
-└── README.md                        # Documentation & theoretical overview
-Applications
-Smart Garments / E-Textiles: Real-time posture and gait transition detection despite fabric stretching and slip.
+python benchmarks/experiment_1_1_mqar_benchmark.py
+Running the Latency & Memory Profiler
+Bash
+python benchmarks/experiment_1_2_scaling_latency.py --max_seq_len 8192
+🔮 Roadmap
+[x] O(1) memory scaling benchmark vs. Llama-3 attention.
 
-Biometric Wearables: Robust ECG/sEMG morphological segmentation under high physical activity.
+[x] Formulate 1D sequence to 2-simplicial complex mapping pipeline.
 
-Autoregressive Robotic Manipulation: Topological oracle layers to prevent hallucination drift across long-horizon trajectories.
+[x] Initial MQAR CPU baseline and bottleneck identification.
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+[ ] Integrate compiled GPU parallel associative scan (mamba-ssm).
+
+[ ] Hook pretrained Llama-3.2-1B / Qwen2.5-0.5B backbones for semantic binding.
+
+[ ] Multi-task continual streaming validation (BWT≥0).
